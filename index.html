@@ -2,19 +2,52 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Click Test</title>
+<title>Excel Convert Test</title>
+
+<script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
 </head>
 
-<body style="padding:50px">
+<body style="font-family:Arial;padding:30px">
 
-<h1>CLICK TEST</h1>
+<h2>Excel Upload → Convert → Download</h2>
 
+<input type="file" id="fileInput" accept=".xlsx,.xls">
+<br><br>
 <button id="btn">Convert & Download</button>
 
 <script>
 document.getElementById("btn").addEventListener("click", function () {
-  document.body.style.background = "lightgreen";
-  alert("CLICK WORKING ✅");
+
+  const input = document.getElementById("fileInput");
+  if (!input.files.length) {
+    alert("Please select Excel file");
+    return;
+  }
+
+  const reader = new FileReader();
+
+  reader.onload = function (e) {
+    const workbook = XLSX.read(e.target.result, { type: "array" });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    let data = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+    // 🔴 EXACT column name
+    const COL = "Party Name";
+
+    data.forEach(row => {
+      if (row[COL]) {
+        row[COL] = "TEST_" + row[COL];   // 👈 visible change
+      }
+    });
+
+    const newSheet = XLSX.utils.json_to_sheet(data);
+    const newWb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(newWb, newSheet, "Result");
+
+    XLSX.writeFile(newWb, "Converted.xlsx");
+  };
+
+  reader.readAsArrayBuffer(input.files[0]);
 });
 </script>
 
