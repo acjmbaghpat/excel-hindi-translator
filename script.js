@@ -1,50 +1,57 @@
-async function translateToHindi(text) {
-  if (!text) return text;
+function transliterate(text) {
+  const map = {
+    a:"अ", aa:"आ", i:"इ", ee:"ई", u:"उ", oo:"ऊ",
+    k:"क", kh:"ख", g:"ग", ch:"च", j:"ज",
+    t:"त", d:"द", n:"न", p:"प", b:"ब", m:"म",
+    y:"य", r:"र", l:"ल", v:"व", s:"स", h:"ह"
+  };
 
-  const url =
-    "https://cors.isomorphic-git.org/https://translate.googleapis.com/translate_a/single" +
-    "?client=gtx&sl=en&tl=hi&dt=t&q=" +
-    encodeURIComponent(text);
+  return text.split(" ").map(word => {
+    let result = "";
+    let i = 0;
+    word = word.toLowerCase();
 
-  const response = await fetch(url);
-  const result = await response.json();
-  return result[0][0][0];
+    while (i < word.length) {
+      if (map[word.substring(i, i+2)]) {
+        result += map[word.substring(i, i+2)];
+        i += 2;
+      } else if (map[word[i]]) {
+        result += map[word[i]];
+        i++;
+      } else {
+        result += word[i];
+        i++;
+      }
+    }
+    return result;
+  }).join(" ");
 }
 
-async function processExcel() {
-  const fileInput = document.getElementById("upload");
-  if (!fileInput.files.length) {
-    alert("Excel file select karo");
+function convert() {
+  const input = document.getElementById("file");
+  if (!input.files.length) {
+    alert("Excel select karo");
     return;
   }
 
   const reader = new FileReader();
+  reader.onload = function(e) {
+    const wb = XLSX.read(e.target.result, { type: "array" });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    let data = XLSX.utils.sheet_to_json(ws);
 
-  reader.onload = async function (e) {
-    const workbook = XLSX.read(e.target.result, { type: "binary" });
-    const sheetName = workbook.SheetNames[0];
-    const sheet = workbook.Sheets[sheetName];
-
-    let data = XLSX.utils.sheet_to_json(sheet);
-
-    // ✅ sequential translate (important)
-    for (let i = 0; i < data.length; i++) {
-      if (data[i]["Party Name"]) {
-        data[i]["Party Name"] =
-          await translateToHindi(data[i]["Party Name"]);
+    data.forEach(row => {
+      if (row["Party Name"]) {
+        row["Party Name"] = transliterate(row["Party Name"]);
       }
-    }
+    });
 
-    const newSheet = XLSX.utils.json_to_sheet(data);
-    const newWorkbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(
-      newWorkbook,
-      newSheet,
-      "Translated"
-    );
+    const newWs = XLSX.utils.json_to_sheet(data);
+    const newWb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(newWb, newWs, "Hindi");
 
-    XLSX.writeFile(newWorkbook, "Translated_Party_Name.xlsx");
+    XLSX.writeFile(newWb, "PartyName_Hindi.xlsx");
   };
 
-  reader.readAsBinaryString(fileInput.files[0]);
+  reader.readAsArrayBuffer(input.files[0]);
 }
