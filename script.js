@@ -1,14 +1,19 @@
-
 async function translateToHindi(text) {
-  let url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=hi&dt=t&q=${encodeURIComponent(text)}`;
-  let res = await fetch(url);
-  let data = await res.json();
-  return data[0][0][0];
+  if (!text) return text;
+
+  const url =
+    "https://cors.isomorphic-git.org/https://translate.googleapis.com/translate_a/single" +
+    "?client=gtx&sl=en&tl=hi&dt=t&q=" +
+    encodeURIComponent(text);
+
+  const response = await fetch(url);
+  const result = await response.json();
+  return result[0][0][0];
 }
 
 async function processExcel() {
-  const file = document.getElementById("upload").files[0];
-  if (!file) {
+  const fileInput = document.getElementById("upload");
+  if (!fileInput.files.length) {
     alert("Excel file select karo");
     return;
   }
@@ -22,18 +27,24 @@ async function processExcel() {
 
     let data = XLSX.utils.sheet_to_json(sheet);
 
-    for (let row of data) {
-      if (row["Party Name"]) {
-        row["Party Name"] = await translateToHindi(row["Party Name"]);
+    // ✅ sequential translate (important)
+    for (let i = 0; i < data.length; i++) {
+      if (data[i]["Party Name"]) {
+        data[i]["Party Name"] =
+          await translateToHindi(data[i]["Party Name"]);
       }
     }
 
     const newSheet = XLSX.utils.json_to_sheet(data);
     const newWorkbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(newWorkbook, newSheet, "Translated");
+    XLSX.utils.book_append_sheet(
+      newWorkbook,
+      newSheet,
+      "Translated"
+    );
 
-    XLSX.writeFile(newWorkbook, "Party_Name_Hindi.xlsx");
+    XLSX.writeFile(newWorkbook, "Translated_Party_Name.xlsx");
   };
 
-  reader.readAsBinaryString(file);
+  reader.readAsBinaryString(fileInput.files[0]);
 }
