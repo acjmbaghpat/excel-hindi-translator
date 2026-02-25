@@ -2,17 +2,72 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Excel Hindi Party Name</title>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<title>Excel Hindi Converter</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
+
 <body style="font-family:Arial;padding:20px">
 
-<h3>Excel Party Name → Hindi</h3>
+<h2>Excel Party Name → Hindi</h2>
 
-<input type="file" id="file" accept=".xlsx,.xls">
+<input type="file" id="fileInput" accept=".xlsx,.xls" />
 <br><br>
-<button onclick="convert()">Convert & Download</button>
+<button onclick="handleFile()">Convert & Download</button>
 
-<script src="script.js"></script>
+<script>
+function simpleHindi(text){
+  const map = {
+    "ram":"राम",
+    "kumar":"कुमार",
+    "sunil":"सुनील",
+    "sharma":"शर्मा"
+  };
+
+  let words = text.toLowerCase().split(" ");
+  return words.map(w => map[w] || w).join(" ");
+}
+
+function handleFile(){
+  const file = document.getElementById("fileInput").files[0];
+  if(!file){
+    alert("File select karo");
+    return;
+  }
+
+  const reader = new FileReader();
+
+  reader.onload = function(e){
+    const data = new Uint8Array(e.target.result);
+    const workbook = XLSX.read(data, {type:'array'});
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+
+    let json = XLSX.utils.sheet_to_json(sheet);
+
+    if(json.length === 0){
+      alert("Excel me data nahi hai");
+      return;
+    }
+
+    // 🔴 IMPORTANT: Column name yahin change karna hai agar alag ho
+    const columnName = "Party Name";
+
+    json.forEach(row=>{
+      if(row[columnName]){
+        row[columnName] = simpleHindi(row[columnName]);
+      }
+    });
+
+    const newSheet = XLSX.utils.json_to_sheet(json);
+    const newWorkbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(newWorkbook,newSheet,"Hindi");
+
+    XLSX.writeFile(newWorkbook,"Converted.xlsx");
+  };
+
+  reader.readAsArrayBuffer(file);
+}
+</script>
+
 </body>
 </html>
