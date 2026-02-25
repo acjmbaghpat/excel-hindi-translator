@@ -2,53 +2,20 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Excel Test Download</title>
-
-<!-- SheetJS -->
-<script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+<title>Click Test</title>
 </head>
 
-<body style="font-family:Arial;padding:20px">
+<body style="padding:50px">
 
-<h2>Excel Upload → Modify → Download (TEST)</h2>
+<h1>CLICK TEST</h1>
 
-<input type="file" id="file" accept=".xlsx,.xls">
-<br><br>
-<button onclick="run()">Process & Download</button>
+<button id="btn">Convert & Download</button>
 
 <script>
-function run() {
-  const input = document.getElementById("file");
-  if (!input.files.length) {
-    alert("File select karo");
-    return;
-  }
-
-  const reader = new FileReader();
-
-  reader.onload = function(e) {
-    const workbook = XLSX.read(e.target.result, { type: "array" });
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    let data = XLSX.utils.sheet_to_json(sheet, { defval: "" });
-
-    // 🔴 COLUMN NAME – CHANGE ONLY IF NEEDED
-    const COL = "Party Name";
-
-    for (let i = 0; i < data.length; i++) {
-      if (data[i][COL]) {
-        data[i][COL] = "टेस्ट_" + data[i][COL];
-      }
-    }
-
-    const newSheet = XLSX.utils.json_to_sheet(data);
-    const newWb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(newWb, newSheet, "Result");
-
-    XLSX.writeFile(newWb, "RESULT.xlsx");
-  };
-
-  reader.readAsArrayBuffer(input.files[0]);
-}
+document.getElementById("btn").addEventListener("click", function () {
+  document.body.style.background = "lightgreen";
+  alert("CLICK WORKING ✅");
+});
 </script>
 
 </body>
