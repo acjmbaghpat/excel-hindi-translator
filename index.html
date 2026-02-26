@@ -1,54 +1,88 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>Excel Convert Test</title>
-
-<script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+  <title>Excel Hindi Translator</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
+<body style="font-family: Arial; padding:20px">
 
-<body style="font-family:Arial;padding:30px">
+<h2>Excel Hindi Translator (Column 3 Only)</h2>
 
-<h2>Excel Upload → Convert → Download</h2>
-
-<input type="file" id="fileInput" accept=".xlsx,.xls">
+<input type="file" id="fileInput" accept=".xlsx,.xls"/>
 <br><br>
-<button id="btn">Convert & Download</button>
+<button onclick="processFile()">Upload & Translate</button>
+<br><br>
+<button onclick="downloadFile()">Download Translated Excel</button>
+
+<p id="status"></p>
 
 <script>
-document.getElementById("btn").addEventListener("click", function () {
+let workbook;
+let translatedData = [];
 
-  const input = document.getElementById("fileInput");
-  if (!input.files.length) {
-    alert("Please select Excel file");
-    return;
-  }
+async function translateToHindi(text) {
+    const response = await fetch(
+      `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=hi&dt=t&q=${encodeURIComponent(text)}`
+    );
+    const data = await response.json();
+    return data[0][0][0];
+}
 
-  const reader = new FileReader();
+async function processFile() {
+    const file = document.getElementById('fileInput').files[0];
+    if (!file) {
+        alert("Please upload Excel file");
+        return;
+    }
 
-  reader.onload = function (e) {
-    const workbook = XLSX.read(e.target.result, { type: "array" });
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    let data = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+    document.getElementById("status").innerText = "Excel file uploaded...";
 
-    // 🔴 EXACT column name
-    const COL = "Party Name";
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+        const data = new Uint8Array(e.target.result);
+        workbook = XLSX.read(data, {type: 'array'});
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(sheet, {header:1});
 
-    data.forEach(row => {
-      if (row[COL]) {
-        row[COL] = "TEST_" + row[COL];   // 👈 visible change
-      }
-    });
+        translatedData = [];
 
-    const newSheet = XLSX.utils.json_to_sheet(data);
-    const newWb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(newWb, newSheet, "Result");
+        for (let i = 0; i < jsonData.length; i++) {
+            let row = jsonData[i];
 
-    XLSX.writeFile(newWb, "Converted.xlsx");
-  };
+            if (i === 0) {
+                translatedData.push(row);
+                continue;
+            }
 
-  reader.readAsArrayBuffer(input.files[0]);
-});
+            if (row[2]) {
+                document.getElementById("status").innerText = "Translating row " + i;
+                row[2] = await translateToHindi(row[2]);
+            }
+
+            translatedData.push(row);
+        }
+
+        document.getElementById("status").innerText = "Translation Complete!";
+    };
+
+    reader.readAsArrayBuffer(file);
+}
+
+function downloadFile() {
+    if (translatedData.length === 0) {
+        alert("No translated data found");
+        return;
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet(translatedData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Translated");
+
+    XLSX.writeFile(wb, "Translated_File.xlsx");
+
+    document.getElementById("status").innerText = "File Downloaded Successfully!";
+}
 </script>
 
 </body>
